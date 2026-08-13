@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 const guestSeedTasks: Array<Omit<Prisma.TaskCreateManyInput, 'userId'>> = [
   {
     title: 'Write API Documentation',
-    description: 'Create clear and detailed API docs for the team.',
+    description: 'Create clear and detailed API documentation to guide developers in using the inventory and sales metrics features effectively.',
     status: TaskStatus.TODO,
     priority: TaskPriority.HIGH,
   },
@@ -40,26 +40,67 @@ const guestSeedTasks: Array<Omit<Prisma.TaskCreateManyInput, 'userId'>> = [
     status: TaskStatus.DONE,
     priority: TaskPriority.MEDIUM,
   },
+  {
+    title: 'UI Review',
+    description: 'Review the latest interface changes before release.',
+    status: TaskStatus.ON_HOLD,
+    priority: TaskPriority.LOW,
+  },
+  {
+    title: 'Backend Integration',
+    description: 'Waiting on API contract updates before merge.',
+    status: TaskStatus.ON_HOLD,
+    priority: TaskPriority.MEDIUM,
+  },
+  {
+    title: 'User Feedback',
+    description: 'Collect input from users before the next release decision.',
+    status: TaskStatus.ON_HOLD,
+    priority: TaskPriority.LOW,
+  },
+  {
+    title: 'Performance Review',
+    description: 'Review optimization findings and plan follow-up work.',
+    status: TaskStatus.ON_HOLD,
+    priority: TaskPriority.MEDIUM,
+  },
 ];
 
 @Injectable()
 export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async ensureGuestSeedTasks(userId: string) {
+    const existingTasks = await this.prisma.task.findMany({
+      where: { userId },
+      select: { title: true },
+    });
+
+    const existingTitles = new Set(existingTasks.map((task) => task.title));
+    const missingTasks = guestSeedTasks.filter((task) => !existingTitles.has(task.title));
+
+    if (missingTasks.length > 0) {
+      await this.prisma.task.createMany({
+        data: missingTasks.map((task) => ({
+          ...task,
+          userId,
+        })),
+      });
+    }
+  }
+
   async loginAsGuest() {
-    const user = await this.prisma.user.create({
-      data: {
+    const user = await this.prisma.user.upsert({
+      where: { email: 'guest@ablespace.local' },
+      update: { name: 'Guest User', isGuest: true },
+      create: {
         name: 'Guest User',
+        email: 'guest@ablespace.local',
         isGuest: true,
       },
     });
 
-    await this.prisma.task.createMany({
-      data: guestSeedTasks.map((task) => ({
-        ...task,
-        userId: user.id,
-      })),
-    });
+    await this.ensureGuestSeedTasks(user.id);
 
     const token = randomUUID();
 
@@ -90,6 +131,10 @@ export class AuthService {
 
     if (!session || session.expiresAt.getTime() < Date.now()) {
       throw new UnauthorizedException('Invalid or expired session');
+    }
+
+    if (session.user.isGuest) {
+      await this.ensureGuestSeedTasks(session.user.id);
     }
 
     return {

@@ -13,13 +13,13 @@ export class TokenAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const authorization = request.headers.authorization;
+    const cookie = request.headers.cookie;
+    const token = cookie?.match(/(?:^|;\s*)able-space\.token=([^;]+)/)?.[1];
 
-    if (!authorization?.startsWith('Bearer ')) {
+    if (!token) {
       throw new UnauthorizedException('Missing authorization token');
     }
 
-    const token = authorization.slice(7).trim();
     const session = await this.prisma.session.findUnique({
       where: { token },
       include: { user: true },
@@ -29,7 +29,6 @@ export class TokenAuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or expired session');
     }
 
-    request.authToken = token;
     request.user = {
       id: session.user.id,
       name: session.user.name,
