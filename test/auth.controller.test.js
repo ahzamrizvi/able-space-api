@@ -40,11 +40,14 @@ test('AuthController guest login sets the session cookie', async () => {
   assert.equal(response.cookieCalls[0][2].sameSite, 'lax');
 });
 
-test('AuthController logout clears the session cookie', () => {
-  const controller = new AuthController({});
+test('AuthController logout clears the session cookie', async () => {
+  const authService = {
+    logout: async () => undefined,
+  };
+  const controller = new AuthController(authService);
   const response = createResponseMock();
 
-  const result = controller.logout(response);
+  const result = await controller.logout(response, 'able-space.token=token-123');
 
   assert.deepEqual(result, { ok: true });
   assert.equal(response.clearCookieCalls.length, 1);

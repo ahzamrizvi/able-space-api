@@ -30,7 +30,13 @@ export class AuthController {
   }
 
   @Post('logout')
-  logout(@Res({ passthrough: true }) response: Response) {
+  async logout(@Res({ passthrough: true }) response: Response, @Headers('cookie') cookie?: string) {
+    const token = cookie?.match(/(?:^|;\s*)able-space\.token=([^;]+)/)?.[1];
+
+    if (token) {
+      await this.authService.logout(decodeURIComponent(token));
+    }
+
     response.clearCookie('able-space.token', { path: '/' });
     return { ok: true };
   }

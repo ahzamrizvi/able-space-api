@@ -103,12 +103,12 @@ export class AuthService {
   }
 
   async loginAsGuest() {
-    const user = await this.prisma.user.upsert({
-      where: { email: 'guest@ablespace.local' },
-      update: { name: 'Guest User', isGuest: true },
-      create: {
+    const guestEmail = `guest-${randomUUID()}@ablespace.local`;
+
+    const user = await this.prisma.user.create({
+      data: {
         name: 'Guest User',
-        email: 'guest@ablespace.local',
+        email: guestEmail,
         isGuest: true,
       },
     });
@@ -156,5 +156,9 @@ export class AuthService {
       email: session.user.email,
       isGuest: session.user.isGuest,
     };
+  }
+
+  async logout(token: string) {
+    await this.prisma.session.deleteMany({ where: { token } });
   }
 }

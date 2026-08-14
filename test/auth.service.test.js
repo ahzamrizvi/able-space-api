@@ -6,7 +6,6 @@ const { AuthService } = require('../dist/auth/auth.service');
 const prisma = () => ({
   user: {
     create: spy(async () => ({ id: 'user-1', name: 'Guest User', email: null, isGuest: true })),
-    upsert: spy(async () => ({ id: 'user-1', name: 'Guest User', email: null, isGuest: true })),
   },
   task: {
     createMany: spy(async () => ({ count: 3 })),
@@ -15,6 +14,7 @@ const prisma = () => ({
   session: {
     create: spy(async () => ({})),
     findUnique: spy(async () => null),
+    deleteMany: spy(async () => ({ count: 1 })),
   },
 });
 
@@ -39,7 +39,7 @@ test('AuthService creates a guest session and seeds starter tasks', async () => 
   assert.equal(result.user.name, 'Guest User');
   assert.equal(result.user.email, null);
   assert.equal(result.user.isGuest, true);
-  assert.equal(db.user.upsert.calls.length, 1);
+  assert.equal(db.user.create.calls.length, 1);
   assert.equal(db.task.createMany.calls.length, 1);
   assert.equal(db.session.create.calls.length, 1);
   assert.equal(db.task.createMany.calls[0][0].data.length, 10);
@@ -72,4 +72,16 @@ test('AuthService rejects an expired session', async () => {
   const service = new AuthService(db);
 
   await assert.rejects(() => service.getCurrentUser('test-token'), UnauthorizedException);
+});
+
+test('AuthService revokes a session on logout', async () => {
+  const db = prisma();
+  const service = new AuthService(db);
+
+  await service.logout('test-token');
+
+  assert.equal(db.session.deleteMany.calls.length, 1);
+  assert.deepEqual(db.session.deleteMany.calls[0][0], {
+    where: { token: 'test-token' },
+  });
 });
