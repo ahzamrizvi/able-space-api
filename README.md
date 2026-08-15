@@ -37,6 +37,12 @@ FRONTEND_ORIGIN=http://localhost:3000
 PORT=3001
 ```
 
+Production:
+
+```bash
+FRONTEND_ORIGIN=https://your-vercel-app.vercel.app
+```
+
 ## Validation
 
 - `main.ts` enables global validation with whitelist and transform.
