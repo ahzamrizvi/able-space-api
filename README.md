@@ -43,6 +43,8 @@ Production:
 FRONTEND_ORIGIN=https://ablespace-app.vercel.app
 ```
 
+You can also provide multiple allowed origins separated by commas.
+
 ## Validation
 
 - `main.ts` enables global validation with whitelist and transform.
