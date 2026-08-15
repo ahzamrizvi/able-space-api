@@ -40,7 +40,7 @@ PORT=3001
 Production:
 
 ```bash
-FRONTEND_ORIGIN=https://your-vercel-app.vercel.app
+FRONTEND_ORIGIN=https://ablespace-app.vercel.app
 ```
 
 ## Validation
