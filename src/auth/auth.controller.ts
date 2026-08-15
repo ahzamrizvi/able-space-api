@@ -6,15 +6,22 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  private getCookieOptions() {
+    const isLocalFrontend = (process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000').includes('localhost');
+
+    return {
+      httpOnly: true,
+      sameSite: isLocalFrontend ? ('lax' as const) : ('none' as const),
+      secure: !isLocalFrontend,
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+    };
+  }
+
   @Post('guest')
   async guestLogin(@Res({ passthrough: true }) response: Response) {
     const result = await this.authService.loginAsGuest();
-    response.cookie('able-space.token', result.token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-    });
+    response.cookie('able-space.token', result.token, this.getCookieOptions());
     return { user: result.user };
   }
 
@@ -37,7 +44,7 @@ export class AuthController {
       await this.authService.logout(decodeURIComponent(token));
     }
 
-    response.clearCookie('able-space.token', { path: '/' });
+    response.clearCookie('able-space.token', this.getCookieOptions());
     return { ok: true };
   }
 }
